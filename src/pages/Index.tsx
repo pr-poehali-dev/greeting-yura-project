@@ -1,10 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import FallingLeaves from '@/components/FallingLeaves';
@@ -33,6 +43,14 @@ const Index = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState('');
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [favicon, setFavicon] = useState('');
+  const htmlFileInputRef = useRef<HTMLInputElement>(null);
+  const cssFileInputRef = useRef<HTMLInputElement>(null);
+  const jsFileInputRef = useRef<HTMLInputElement>(null);
+  const faviconFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,7 +72,21 @@ const Index = () => {
     if (iframe) {
       const previewDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (previewDoc) {
-        const fullCode = htmlCode.replace('</head>', `<style>${cssCode}</style></head>`).replace('</body>', `<script>${jsCode}<\/script></body>`);
+        let fullCode = htmlCode;
+        
+        if (favicon) {
+          fullCode = fullCode.replace('</head>', `<link rel="icon" href="${favicon}"><style>${cssCode}</style></head>`);
+        } else {
+          fullCode = fullCode.replace('</head>', `<style>${cssCode}</style></head>`);
+        }
+        
+        fullCode = fullCode.replace('</body>', `<script>${jsCode}<\/script></body>`);
+        
+        const titleMatch = htmlCode.match(/<title>(.*?)<\/title>/i);
+        if (!titleMatch && projectName) {
+          fullCode = fullCode.replace('</head>', `<title>${projectName}</title></head>`);
+        }
+        
         previewDoc.open();
         previewDoc.write(fullCode);
         previewDoc.close();
@@ -135,6 +167,91 @@ const Index = () => {
     }
   };
 
+  const deleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(PROJECTS_API, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: projectId })
+      });
+
+      if (response.ok) {
+        await loadProjects();
+        toast({
+          title: "Проект удален",
+        });
+        setDeleteProjectId(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить проект",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renameProject = async (projectId: string, newName: string) => {
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const response = await fetch(PROJECTS_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: projectId,
+          name: newName,
+          description: project.description,
+          html_code: project.html_code,
+          css_code: project.css_code,
+          js_code: project.js_code
+        })
+      });
+
+      if (response.ok) {
+        await loadProjects();
+        toast({
+          title: "Проект переименован",
+        });
+        setEditingProjectId(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось переименовать проект",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileImport = (type: 'html' | 'css' | 'js', file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (type === 'html') setHtmlCode(content);
+      if (type === 'css') setCssCode(content);
+      if (type === 'js') setJsCode(content);
+      toast({
+        title: "Файл загружен",
+        description: file.name,
+      });
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFaviconImport = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setFavicon(dataUrl);
+      toast({
+        title: "Иконка загружена",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50">
       <FallingLeaves />
@@ -146,6 +263,14 @@ const Index = () => {
             </h1>
             
             <div className="hidden lg:flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = '/constructor'}
+                className="hover:bg-gray-50"
+              >
+                <Icon name="LayoutGrid" size={18} className="mr-2" />
+                Конструктор
+              </Button>
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="hover:bg-gray-50">
@@ -164,11 +289,62 @@ const Index = () => {
                       projects.map((project) => (
                         <Card
                           key={project.id}
-                          className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                          onClick={() => loadProject(project.id)}
+                          className="p-4 hover:shadow-lg transition-shadow"
                         >
-                          <h3 className="font-semibold">{project.name}</h3>
-                          <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                          {editingProjectId === project.id ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={editingProjectName}
+                                onChange={(e) => setEditingProjectName(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => renameProject(project.id, editingProjectName)}>
+                                  Сохранить
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingProjectId(null)}>
+                                  Отмена
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <h3 
+                                  className="font-semibold cursor-pointer flex-1"
+                                  onClick={() => loadProject(project.id)}
+                                >
+                                  {project.name}
+                                </h3>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingProjectId(project.id);
+                                      setEditingProjectName(project.name);
+                                    }}
+                                  >
+                                    <Icon name="Pencil" size={14} />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setDeleteProjectId(project.id)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Icon name="Trash2" size={14} />
+                                  </Button>
+                                </div>
+                              </div>
+                              <p 
+                                className="text-sm text-gray-600 line-clamp-2 cursor-pointer"
+                                onClick={() => loadProject(project.id)}
+                              >
+                                {project.description}
+                              </p>
+                            </div>
+                          )}
                         </Card>
                       ))
                     )}
@@ -280,9 +456,25 @@ const Index = () => {
                   <Input
                     placeholder="Мой крутой сайт"
                     value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
+                    onChange={(e) => {
+                      const newTitle = e.target.value;
+                      setProjectName(newTitle);
+                      
+                      const titleRegex = /<title>(.*?)<\/title>/i;
+                      if (titleRegex.test(htmlCode)) {
+                        setHtmlCode(htmlCode.replace(titleRegex, `<title>${newTitle}</title>`));
+                      } else {
+                        setHtmlCode(htmlCode.replace('</head>', `  <title>${newTitle}</title>\n</head>`));
+                      }
+                    }}
                     className="border-2 focus:border-blue-500"
                   />
+                  {projectName && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      <Icon name="Eye" size={12} className="inline mr-1" />
+                      Предпросмотр: <span className="font-medium">{projectName}</span>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Описание сайта *</label>
@@ -293,6 +485,45 @@ const Index = () => {
                     rows={3}
                     className="border-2 focus:border-blue-500 resize-none"
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                    <Icon name="Image" size={16} />
+                    Иконка сайта (favicon)
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      ref={faviconFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFaviconImport(file);
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => faviconFileInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Icon name="Upload" size={16} className="mr-2" />
+                      Загрузить иконку
+                    </Button>
+                    {favicon && (
+                      <div className="flex items-center gap-2">
+                        <img src={favicon} alt="favicon" className="w-6 h-6" />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setFavicon('')}
+                        >
+                          <Icon name="X" size={16} />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -319,30 +550,96 @@ const Index = () => {
                 </TabsList>
 
                 <TabsContent value="html">
-                  <Textarea
-                    value={htmlCode}
-                    onChange={(e) => setHtmlCode(e.target.value)}
-                    className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-red-500 bg-gray-50"
-                    placeholder="Введите HTML код..."
-                  />
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        ref={htmlFileInputRef}
+                        type="file"
+                        accept=".html"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileImport('html', file);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => htmlFileInputRef.current?.click()}
+                      >
+                        <Icon name="Upload" size={16} className="mr-1" />
+                        Импорт .html
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={htmlCode}
+                      onChange={(e) => setHtmlCode(e.target.value)}
+                      className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-red-500 bg-gray-50"
+                      placeholder="Введите HTML код..."
+                    />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="css">
-                  <Textarea
-                    value={cssCode}
-                    onChange={(e) => setCssCode(e.target.value)}
-                    className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-purple-500 bg-gray-50"
-                    placeholder="Введите CSS код..."
-                  />
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        ref={cssFileInputRef}
+                        type="file"
+                        accept=".css"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileImport('css', file);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => cssFileInputRef.current?.click()}
+                      >
+                        <Icon name="Upload" size={16} className="mr-1" />
+                        Импорт .css
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={cssCode}
+                      onChange={(e) => setCssCode(e.target.value)}
+                      className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-purple-500 bg-gray-50"
+                      placeholder="Введите CSS код..."
+                    />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="js">
-                  <Textarea
-                    value={jsCode}
-                    onChange={(e) => setJsCode(e.target.value)}
-                    className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-blue-500 bg-gray-50"
-                    placeholder="Введите JavaScript код..."
-                  />
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        ref={jsFileInputRef}
+                        type="file"
+                        accept=".js"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileImport('js', file);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => jsFileInputRef.current?.click()}
+                      >
+                        <Icon name="Upload" size={16} className="mr-1" />
+                        Импорт .js
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={jsCode}
+                      onChange={(e) => setJsCode(e.target.value)}
+                      className="font-mono text-xs sm:text-sm h-60 sm:h-80 resize-none border-2 focus:border-blue-500 bg-gray-50"
+                      placeholder="Введите JavaScript код..."
+                    />
+                  </div>
                 </TabsContent>
               </Tabs>
             </Card>
@@ -423,6 +720,26 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <AlertDialog open={deleteProjectId !== null} onOpenChange={() => setDeleteProjectId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить проект?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Проект будет удален навсегда.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteProjectId && deleteProject(deleteProjectId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
