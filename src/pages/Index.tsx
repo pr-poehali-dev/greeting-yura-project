@@ -51,9 +51,17 @@ const Index = () => {
   const cssFileInputRef = useRef<HTMLInputElement>(null);
   const jsFileInputRef = useRef<HTMLInputElement>(null);
   const faviconFileInputRef = useRef<HTMLInputElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userEnergy, setUserEnergy] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      setCurrentUser(userData);
+      setUserEnergy(userData.energy || 0);
+    }
     loadProjects();
   }, []);
 
@@ -262,7 +270,21 @@ const Index = () => {
               WEBSITE BUILDER
             </h1>
             
-            <div className="hidden lg:flex gap-3">
+            <div className="hidden lg:flex gap-3 items-center">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <Icon name="Zap" size={18} className="text-yellow-600" />
+                <span className="font-semibold text-yellow-700">{userEnergy}</span>
+              </div>
+              {currentUser?.is_admin && (
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = '/admin'}
+                  className="hover:bg-red-50 border-red-200"
+                >
+                  <Icon name="Shield" size={18} className="mr-2 text-red-600" />
+                  Админ
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 onClick={() => window.location.href = '/constructor'}
@@ -371,6 +393,16 @@ const Index = () => {
               >
                 <Icon name="Send" size={18} className="mr-2" />
                 Telegram
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = '/login';
+                }}
+                className="hover:bg-red-50 text-red-600"
+              >
+                <Icon name="LogOut" size={18} />
               </Button>
             </div>
 
