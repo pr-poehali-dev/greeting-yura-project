@@ -1,0 +1,18 @@
+{
+  "tests": [
+    {
+      "name": "View project without ID returns error",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "View non-existent project returns 404",
+      "method": "GET",
+      "path": "/?id=non-existent-id-999",
+      "expectedStatus": 404,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

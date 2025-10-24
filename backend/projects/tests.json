@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Get all projects list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create new project",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "id": "test-project-123",
+        "name": "Test Project",
+        "description": "Test Description",
+        "html_code": "<h1>Test</h1>",
+        "css_code": "body { margin: 0; }",
+        "js_code": "console.log('test');"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
