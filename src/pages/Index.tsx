@@ -834,8 +834,7 @@ document.querySelectorAll('.project-card').forEach(card => {
       toast({
         title: "Проект удален",
       });
-        setDeleteProjectId(null);
-      }
+      setDeleteProjectId(null);
     } catch (error) {
       toast({
         title: "Ошибка",
