@@ -216,6 +216,17 @@ const Index = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        if (errorData.error === 'API key not configured') {
+          toast({
+            title: "⚠️ Нужен API ключ",
+            description: "Добавьте бесплатный ключ Groq в настройках проекта для AI-генерации. Инструкция в чате выше.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+          return;
+        }
+        
         throw new Error(errorData.error || 'Ошибка генерации');
       }
 
@@ -236,7 +247,7 @@ const Index = () => {
     } catch (error: any) {
       toast({
         title: "Ошибка генерации",
-        description: error.message || "Не удалось создать сайт. Проверьте API ключ в настройках.",
+        description: error.message || "Не удалось создать сайт",
         variant: "destructive",
       });
     } finally {
