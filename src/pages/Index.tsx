@@ -41,10 +41,10 @@ interface FileItem {
 const Index = () => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
-  const [htmlCode, setHtmlCode] = useState('<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>GameSite</title>\n</head>\n<body>\n  <h1>GAME OVER</h1>\n  <p>Press START to continue...</p>\n</body>\n</html>');
-  const [cssCode, setCssCode] = useState('body {\n  font-family: "Press Start 2P", cursive;\n  margin: 0;\n  padding: 40px;\n  background: #000;\n  color: #0f0;\n  text-align: center;\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n}\n\nh1 {\n  font-size: 3em;\n  animation: blink 1s infinite;\n}\n\n@keyframes blink {\n  0%, 50% { opacity: 1; }\n  51%, 100% { opacity: 0; }\n}\n\np {\n  font-size: 1.2em;\n  margin-top: 20px;\n}');
-  const [jsCode, setJsCode] = useState('console.log("GAME STARTED!");');
-  const [activeTab, setActiveTab] = useState('code');
+  const [htmlCode, setHtmlCode] = useState('<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Мой сайт</title>\n</head>\n<body>\n  <h1>Добро пожаловать!</h1>\n  <p>Это мой первый сайт на PlutEdit</p>\n</body>\n</html>');
+  const [cssCode, setCssCode] = useState('body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 40px;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  color: white;\n  text-align: center;\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n}\n\nh1 {\n  font-size: 3em;\n  margin: 0;\n}\n\np {\n  font-size: 1.2em;\n  opacity: 0.9;\n}');
+  const [jsCode, setJsCode] = useState('console.log("Сайт загружен!");');
+  const [activeTab, setActiveTab] = useState('html');
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -95,8 +95,8 @@ const Index = () => {
   const handlePublish = async () => {
     if (!projectName.trim() || !projectDescription.trim()) {
       toast({
-        title: "⚠️ MISSING DATA",
-        description: "Enter name and description to deploy",
+        title: "Заполните поля",
+        description: "Название и описание обязательны для публикации",
         variant: "destructive",
       });
       return;
@@ -125,14 +125,14 @@ const Index = () => {
         await loadProjects();
         
         toast({
-          title: "🚀 DEPLOYED!",
-          description: "Site live on the net",
+          title: "Сайт опубликован! 🚀",
+          description: "Ваш сайт доступен по ссылке",
         });
       }
     } catch (error) {
       toast({
-        title: "❌ ERROR",
-        description: "Deploy failed",
+        title: "Ошибка",
+        description: "Не удалось опубликовать сайт",
         variant: "destructive",
       });
     } finally {
@@ -153,13 +153,13 @@ const Index = () => {
       setShowMobileMenu(false);
       
       toast({
-        title: "✓ LOADED",
+        title: "Проект загружен",
         description: project.name,
       });
     } catch (error) {
       toast({
-        title: "❌ ERROR",
-        description: "Failed to load project",
+        title: "Ошибка",
+        description: "Не удалось загрузить проект",
         variant: "destructive",
       });
     }
@@ -176,14 +176,14 @@ const Index = () => {
       if (response.ok) {
         await loadProjects();
         toast({
-          title: "🗑️ DELETED",
+          title: "Проект удален",
         });
         setDeleteProjectId(null);
       }
     } catch (error) {
       toast({
-        title: "❌ ERROR",
-        description: "Delete failed",
+        title: "Ошибка",
+        description: "Не удалось удалить проект",
         variant: "destructive",
       });
     }
@@ -210,14 +210,14 @@ const Index = () => {
       if (response.ok) {
         await loadProjects();
         toast({
-          title: "✓ RENAMED",
+          title: "Проект переименован",
         });
         setEditingProjectId(null);
       }
     } catch (error) {
       toast({
-        title: "❌ ERROR",
-        description: "Rename failed",
+        title: "Ошибка",
+        description: "Не удалось переименовать проект",
         variant: "destructive",
       });
     }
@@ -252,7 +252,7 @@ const Index = () => {
         else if (fileType === 'js') setJsCode(content);
 
         toast({
-          title: "📁 FILE IMPORTED",
+          title: "Файл загружен",
           description: `${file.name} (${size})`,
         });
       };
@@ -268,7 +268,7 @@ const Index = () => {
   const removeFile = (fileName: string) => {
     setFiles(prev => prev.filter(f => f.name !== fileName));
     toast({
-      title: "🗑️ FILE REMOVED",
+      title: "Файл удален",
       description: fileName,
     });
   };
@@ -279,8 +279,8 @@ const Index = () => {
     else if (file.type === 'js') setJsCode(file.content);
     
     toast({
-      title: "✓ APPLIED",
-      description: `${file.name} loaded to editor`,
+      title: "Файл применен",
+      description: `${file.name} загружен в редактор`,
     });
   };
 
@@ -289,7 +289,7 @@ const Index = () => {
   }, [htmlCode, cssCode, jsCode]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-purple-900 to-black text-cyan-300">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <input
         type="file"
         ref={fileInputRef}
@@ -298,19 +298,20 @@ const Index = () => {
         multiple
         className="hidden"
       />
+      <FallingLeaves />
 
-      <header className="border-b-2 border-purple-500 bg-black/50 backdrop-blur-md sticky top-0 z-50 neon-border">
+      <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center animate-glitch">
-                <Icon name="Code2" size={28} className="text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="text-white font-bold text-lg">P/E</div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                  PLUTSTUDIO
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">
+                  PlutEdit
                 </h1>
-                <p className="text-xs text-cyan-400">[ GAME DEV MODE ]</p>
+                <p className="text-xs text-gray-500">Конструктор сайтов</p>
               </div>
             </div>
 
@@ -318,56 +319,56 @@ const Index = () => {
               <Button 
                 onClick={generatePreview}
                 variant="outline"
-                className="bg-purple-900/50 border-purple-500 text-purple-300 hover:bg-purple-800 hover:text-white"
+                className="hover:bg-gray-50"
               >
                 <Icon name="Eye" size={18} className="mr-2" />
-                PREVIEW
+                Предпросмотр
               </Button>
               <Button 
                 onClick={handlePublish}
                 disabled={isPublishing}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/50"
+                className="bg-gradient-to-r from-red-500 to-blue-500 hover:from-red-600 hover:to-blue-600 text-white"
               >
                 <Icon name="Rocket" size={18} className="mr-2" />
-                {isPublishing ? 'DEPLOYING...' : 'DEPLOY'}
+                {isPublishing ? 'Публикация...' : 'Опубликовать'}
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => window.open('https://t.me/plutstudio', '_blank')}
-                className="bg-cyan-900/50 border-cyan-500 text-cyan-300 hover:bg-cyan-800"
+                className="hover:bg-blue-50"
               >
                 <Icon name="Send" size={18} className="mr-2" />
-                TG
+                Telegram
               </Button>
             </div>
 
             <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="lg:hidden border-purple-500 text-purple-300">
+                <Button variant="outline" size="sm" className="lg:hidden">
                   <Icon name="Menu" size={20} />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-black border-purple-500">
+              <SheetContent side="right">
                 <SheetHeader>
-                  <SheetTitle className="text-purple-400">MENU</SheetTitle>
+                  <SheetTitle>Меню</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 space-y-3">
-                  <Button onClick={generatePreview} variant="outline" className="w-full border-purple-500 text-purple-300">
-                    <Icon name="Eye" size={18} className="mr-2" /> PREVIEW
+                  <Button onClick={generatePreview} variant="outline" className="w-full">
+                    <Icon name="Eye" size={18} className="mr-2" /> Предпросмотр
                   </Button>
-                  <Button onClick={handlePublish} disabled={isPublishing} className="w-full bg-purple-600 hover:bg-purple-700">
-                    <Icon name="Rocket" size={18} className="mr-2" /> DEPLOY
+                  <Button onClick={handlePublish} disabled={isPublishing} className="w-full">
+                    <Icon name="Rocket" size={18} className="mr-2" /> Опубликовать
                   </Button>
                   
-                  <div className="pt-4 border-t border-purple-700">
-                    <h3 className="text-sm font-semibold text-purple-400 mb-2">PROJECTS</h3>
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Мои проекты</h3>
                     {projects.map((project) => (
                       <div key={project.id} className="flex items-center gap-2 mb-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => loadProject(project.id)}
-                          className="flex-1 justify-start text-cyan-300 hover:bg-purple-900"
+                          className="flex-1 justify-start"
                         >
                           {project.name}
                         </Button>
@@ -383,109 +384,103 @@ const Index = () => {
 
       <div className="container mx-auto px-4 py-6 grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <Card className="bg-black/80 border-2 border-purple-500 neon-border">
-            <div className="p-4 border-b border-purple-700">
-              <h2 className="text-xl font-bold text-purple-400">[ PROJECT CONFIG ]</h2>
+          <Card>
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold">Настройки проекта</h2>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-cyan-400 mb-2">NAME:</label>
+                <label className="block text-sm font-semibold mb-2">Название проекта</label>
                 <Input 
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="Enter project name..."
-                  className="bg-purple-900/30 border-purple-500 text-cyan-300 placeholder:text-purple-400"
+                  placeholder="Введите название..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-cyan-400 mb-2">DESCRIPTION:</label>
+                <label className="block text-sm font-semibold mb-2">Описание</label>
                 <Input 
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
-                  placeholder="Enter description..."
-                  className="bg-purple-900/30 border-purple-500 text-cyan-300 placeholder:text-purple-400"
+                  placeholder="Введите описание..."
                 />
               </div>
             </div>
           </Card>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-black/80 border-2 border-purple-500">
-              <TabsTrigger value="code" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">CODE</TabsTrigger>
-              <TabsTrigger value="files" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">FILES</TabsTrigger>
-              <TabsTrigger value="preview" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">PREVIEW</TabsTrigger>
-              <TabsTrigger value="publish" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">DEPLOY</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="html">HTML</TabsTrigger>
+              <TabsTrigger value="css">CSS</TabsTrigger>
+              <TabsTrigger value="js">JavaScript</TabsTrigger>
+              <TabsTrigger value="files">Файлы</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="code" className="space-y-4">
-              <Card className="bg-black/80 border-2 border-purple-500">
-                <Tabs defaultValue="html">
-                  <TabsList className="w-full bg-purple-900/50 border-b border-purple-700">
-                    <TabsTrigger value="html" className="data-[state=active]:bg-purple-600">HTML</TabsTrigger>
-                    <TabsTrigger value="css" className="data-[state=active]:bg-purple-600">CSS</TabsTrigger>
-                    <TabsTrigger value="js" className="data-[state=active]:bg-purple-600">JS</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="html" className="p-4">
-                    <Textarea 
-                      value={htmlCode}
-                      onChange={(e) => setHtmlCode(e.target.value)}
-                      className="font-mono min-h-[400px] bg-black/90 border-purple-500 text-green-400"
-                      spellCheck={false}
-                    />
-                  </TabsContent>
-                  <TabsContent value="css" className="p-4">
-                    <Textarea 
-                      value={cssCode}
-                      onChange={(e) => setCssCode(e.target.value)}
-                      className="font-mono min-h-[400px] bg-black/90 border-purple-500 text-blue-400"
-                      spellCheck={false}
-                    />
-                  </TabsContent>
-                  <TabsContent value="js" className="p-4">
-                    <Textarea 
-                      value={jsCode}
-                      onChange={(e) => setJsCode(e.target.value)}
-                      className="font-mono min-h-[400px] bg-black/90 border-purple-500 text-yellow-400"
-                      spellCheck={false}
-                    />
-                  </TabsContent>
-                </Tabs>
+            <TabsContent value="html">
+              <Card className="p-4">
+                <Textarea 
+                  value={htmlCode}
+                  onChange={(e) => setHtmlCode(e.target.value)}
+                  className="font-mono min-h-[400px]"
+                  spellCheck={false}
+                />
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="css">
+              <Card className="p-4">
+                <Textarea 
+                  value={cssCode}
+                  onChange={(e) => setCssCode(e.target.value)}
+                  className="font-mono min-h-[400px]"
+                  spellCheck={false}
+                />
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="js">
+              <Card className="p-4">
+                <Textarea 
+                  value={jsCode}
+                  onChange={(e) => setJsCode(e.target.value)}
+                  className="font-mono min-h-[400px]"
+                  spellCheck={false}
+                />
               </Card>
             </TabsContent>
 
             <TabsContent value="files">
-              <Card className="bg-black/80 border-2 border-purple-500 p-6">
+              <Card className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-purple-400">[ FILE MANAGER ]</h3>
+                    <h3 className="text-lg font-bold">Файловый менеджер</h3>
                     <Button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-purple-600 hover:bg-purple-700"
                     >
                       <Icon name="Upload" size={18} className="mr-2" />
-                      IMPORT FILES
+                      Импорт файлов
                     </Button>
                   </div>
 
                   {files.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-purple-700 rounded-lg">
-                      <Icon name="FolderOpen" size={48} className="mx-auto mb-4 text-purple-500" />
-                      <p className="text-purple-400">No files imported yet</p>
-                      <p className="text-sm text-purple-600 mt-2">Click IMPORT FILES to add HTML, CSS, JS or images</p>
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                      <Icon name="FolderOpen" size={48} className="mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-600">Файлы не импортированы</p>
+                      <p className="text-sm text-gray-500 mt-2">Нажмите "Импорт файлов" для добавления HTML, CSS, JS или изображений</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {files.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-purple-900/30 border border-purple-700 rounded-lg hover:bg-purple-900/50 transition-colors">
+                        <div key={idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="flex items-center gap-3">
                             <Icon 
                               name={file.type === 'html' ? 'FileCode' : file.type === 'css' ? 'Palette' : file.type === 'js' ? 'Code' : 'Image'} 
                               size={20} 
-                              className={file.type === 'html' ? 'text-orange-400' : file.type === 'css' ? 'text-blue-400' : file.type === 'js' ? 'text-yellow-400' : 'text-pink-400'}
+                              className="text-gray-600"
                             />
                             <div>
-                              <p className="text-cyan-300 font-mono text-sm">{file.name}</p>
-                              <p className="text-purple-500 text-xs">{file.size}</p>
+                              <p className="font-mono text-sm">{file.name}</p>
+                              <p className="text-gray-500 text-xs">{file.size}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -494,17 +489,15 @@ const Index = () => {
                                 size="sm" 
                                 variant="outline"
                                 onClick={() => applyFileToEditor(file)}
-                                className="border-cyan-500 text-cyan-400 hover:bg-cyan-900"
                               >
                                 <Icon name="Code" size={14} className="mr-1" />
-                                APPLY
+                                Применить
                               </Button>
                             )}
                             <Button 
                               size="sm" 
                               variant="outline"
                               onClick={() => removeFile(file.name)}
-                              className="border-red-500 text-red-400 hover:bg-red-900"
                             >
                               <Icon name="Trash2" size={14} />
                             </Button>
@@ -517,65 +510,54 @@ const Index = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="preview">
-              <Card className="bg-black/80 border-2 border-purple-500 p-4">
-                <iframe
-                  id="preview-frame"
-                  className="w-full h-[600px] bg-white rounded-lg border-2 border-purple-700"
-                  title="Preview"
-                />
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="publish">
-              <Card className="bg-black/80 border-2 border-purple-500 p-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-purple-400">[ DEPLOYMENT ]</h3>
-                  {generatedUrl ? (
-                    <div className="space-y-3">
-                      <div className="p-4 bg-green-900/30 border-2 border-green-500 rounded-lg">
-                        <p className="text-sm text-green-400 mb-2">✓ DEPLOYED SUCCESSFULLY</p>
-                        <a 
-                          href={generatedUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 hover:text-cyan-300 underline break-all"
-                        >
-                          {generatedUrl}
-                        </a>
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          navigator.clipboard.writeText(generatedUrl);
-                          toast({ title: "📋 COPIED" });
-                        }}
-                        variant="outline"
-                        className="w-full border-cyan-500 text-cyan-400 hover:bg-cyan-900"
-                      >
-                        <Icon name="Copy" size={18} className="mr-2" />
-                        COPY URL
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 border-2 border-dashed border-purple-700 rounded-lg">
-                      <Icon name="Rocket" size={48} className="mx-auto mb-4 text-purple-500" />
-                      <p className="text-purple-400">Click DEPLOY to publish your site</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </TabsContent>
           </Tabs>
+
+          <Card className="p-4">
+            <iframe
+              id="preview-frame"
+              className="w-full h-[600px] bg-white rounded-lg border"
+              title="Preview"
+            />
+          </Card>
+
+          {generatedUrl && (
+            <Card className="p-6">
+              <div className="space-y-3">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700 mb-2 font-semibold">✓ Сайт опубликован</p>
+                  <a 
+                    href={generatedUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline break-all text-sm"
+                  >
+                    {generatedUrl}
+                  </a>
+                </div>
+                <Button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedUrl);
+                    toast({ title: "Ссылка скопирована" });
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Icon name="Copy" size={18} className="mr-2" />
+                  Скопировать ссылку
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">
-          <Card className="bg-black/80 border-2 border-purple-500 hidden lg:block">
-            <div className="p-4 border-b border-purple-700">
-              <h3 className="font-bold text-purple-400">[ MY PROJECTS ]</h3>
+          <Card className="hidden lg:block">
+            <div className="p-4 border-b">
+              <h3 className="font-bold">Мои проекты</h3>
             </div>
             <div className="p-4 max-h-[600px] overflow-y-auto space-y-2">
               {projects.length === 0 ? (
-                <p className="text-purple-600 text-sm text-center py-4">No projects yet</p>
+                <p className="text-gray-500 text-sm text-center py-4">Проектов пока нет</p>
               ) : (
                 projects.map((project) => (
                   <div key={project.id} className="group relative">
@@ -584,12 +566,11 @@ const Index = () => {
                         <Input 
                           value={editingProjectName}
                           onChange={(e) => setEditingProjectName(e.target.value)}
-                          className="bg-purple-900/30 border-purple-500 text-cyan-300 text-sm"
+                          className="text-sm"
                         />
                         <Button 
                           size="sm"
                           onClick={() => renameProject(project.id, editingProjectName)}
-                          className="bg-green-600 hover:bg-green-700"
                         >
                           <Icon name="Check" size={14} />
                         </Button>
@@ -597,16 +578,15 @@ const Index = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => setEditingProjectId(null)}
-                          className="border-red-500 text-red-400"
                         >
                           <Icon name="X" size={14} />
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between p-3 bg-purple-900/30 border border-purple-700 rounded-lg hover:bg-purple-900/50 transition-colors">
+                      <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                         <button
                           onClick={() => loadProject(project.id)}
-                          className="flex-1 text-left text-cyan-300 hover:text-cyan-200 text-sm font-mono"
+                          className="flex-1 text-left text-sm"
                         >
                           {project.name}
                         </button>
@@ -618,7 +598,7 @@ const Index = () => {
                               setEditingProjectId(project.id);
                               setEditingProjectName(project.name);
                             }}
-                            className="h-7 w-7 p-0 text-cyan-400 hover:bg-cyan-900"
+                            className="h-7 w-7 p-0"
                           >
                             <Icon name="Pencil" size={14} />
                           </Button>
@@ -626,7 +606,7 @@ const Index = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => setDeleteProjectId(project.id)}
-                            className="h-7 w-7 p-0 text-red-400 hover:bg-red-900"
+                            className="h-7 w-7 p-0"
                           >
                             <Icon name="Trash2" size={14} />
                           </Button>
@@ -642,20 +622,20 @@ const Index = () => {
       </div>
 
       <AlertDialog open={deleteProjectId !== null} onOpenChange={(open) => !open && setDeleteProjectId(null)}>
-        <AlertDialogContent className="bg-black border-2 border-red-500">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-400">[ DELETE PROJECT? ]</AlertDialogTitle>
-            <AlertDialogDescription className="text-purple-400">
-              This action cannot be undone. Project will be permanently deleted.
+            <AlertDialogTitle>Удалить проект?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Проект будет удален навсегда.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-purple-500 text-purple-400">CANCEL</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => deleteProjectId && deleteProject(deleteProjectId)}
               className="bg-red-600 hover:bg-red-700"
             >
-              DELETE
+              Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
