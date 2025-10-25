@@ -29,6 +29,14 @@ interface Project {
   css_code?: string;
   js_code?: string;
   created_at?: string;
+  user_id?: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
 }
 
 interface FileItem {
@@ -39,6 +47,12 @@ interface FileItem {
 }
 
 const Index = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthMode, setIsAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authUsername, setAuthUsername] = useState('');
+  
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [htmlCode, setHtmlCode] = useState('<!DOCTYPE html>\n<html lang="ru">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Мой сайт</title>\n</head>\n<body>\n  <h1>Добро пожаловать!</h1>\n  <p>Это мой первый сайт на PlutEdit</p>\n</body>\n</html>');
@@ -57,14 +71,110 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadProjects();
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      loadProjects();
+    }
+  }, [currentUser]);
+
+  const handleLogin = () => {
+    if (!authEmail || !authPassword) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните все поля",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: User) => u.email === authEmail && u.password === authPassword);
+
+    if (user) {
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      toast({
+        title: "Добро пожаловать!",
+        description: `Рады видеть вас, ${user.username}`,
+      });
+      setAuthEmail('');
+      setAuthPassword('');
+    } else {
+      toast({
+        title: "Ошибка",
+        description: "Неверный email или пароль",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegister = () => {
+    if (!authEmail || !authPassword || !authUsername) {
+      toast({
+        title: "Ошибка",
+        description: "Заполните все поля",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    if (users.find((u: User) => u.email === authEmail)) {
+      toast({
+        title: "Ошибка",
+        description: "Пользователь с таким email уже существует",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newUser: User = {
+      id: Math.random().toString(36).substring(2, 11),
+      username: authUsername,
+      email: authEmail,
+      password: authPassword,
+    };
+
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    setCurrentUser(newUser);
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    
+    toast({
+      title: "Регистрация успешна!",
+      description: `Добро пожаловать, ${newUser.username}`,
+    });
+    
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthUsername('');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    setProjects([]);
+    toast({
+      title: "Выход выполнен",
+      description: "До скорой встречи!",
+    });
+  };
+
   const loadProjects = async () => {
+    if (!currentUser) return;
+    
     try {
       const response = await fetch(PROJECTS_API);
       const data = await response.json();
-      setProjects(data);
+      const userProjects = data.filter((p: Project) => p.user_id === currentUser.id);
+      setProjects(userProjects);
     } catch (error) {
       console.error('Failed to load projects:', error);
     }
@@ -115,7 +225,8 @@ const Index = () => {
           description: projectDescription,
           html_code: htmlCode,
           css_code: cssCode,
-          js_code: jsCode
+          js_code: jsCode,
+          user_id: currentUser?.id
         })
       });
 
@@ -288,6 +399,96 @@ const Index = () => {
     generatePreview();
   }, [htmlCode, cssCode, jsCode]);
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg mx-auto mb-4">
+              <div className="text-white font-bold text-2xl">P/E</div>
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent mb-2">
+              PlutEdit
+            </h1>
+            <p className="text-gray-600">Конструктор сайтов</p>
+          </div>
+
+          <Tabs value={isAuthMode} onValueChange={(v) => setIsAuthMode(v as 'login' | 'register')}>
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Вход</TabsTrigger>
+              <TabsTrigger value="register">Регистрация</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Email</label>
+                <Input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Пароль</label>
+                <Input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button
+                onClick={handleLogin}
+                className="w-full bg-gradient-to-r from-red-500 to-blue-500 hover:from-red-600 hover:to-blue-600"
+              >
+                <Icon name="LogIn" size={18} className="mr-2" />
+                Войти
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="register" className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Имя пользователя</label>
+                <Input
+                  type="text"
+                  value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value)}
+                  placeholder="Ваше имя"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Email</label>
+                <Input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Пароль</label>
+                <Input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button
+                onClick={handleRegister}
+                className="w-full bg-gradient-to-r from-red-500 to-blue-500 hover:from-red-600 hover:to-blue-600"
+              >
+                <Icon name="UserPlus" size={18} className="mr-2" />
+                Зарегистрироваться
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <input
@@ -315,6 +516,10 @@ const Index = () => {
             </div>
 
             <div className="hidden lg:flex items-center gap-2">
+              <div className="flex items-center gap-2 mr-4 px-3 py-1 bg-white rounded-lg border">
+                <Icon name="User" size={16} className="text-gray-600" />
+                <span className="text-sm font-medium">{currentUser.username}</span>
+              </div>
               <Button 
                 onClick={generatePreview}
                 variant="outline"
@@ -338,6 +543,14 @@ const Index = () => {
               >
                 <Icon name="Send" size={18} className="mr-2" />
                 Telegram
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleLogout}
+                className="hover:bg-red-50"
+              >
+                <Icon name="LogOut" size={18} className="mr-2" />
+                Выход
               </Button>
             </div>
 
