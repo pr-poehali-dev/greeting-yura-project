@@ -298,7 +298,6 @@ const Index = () => {
         multiple
         className="hidden"
       />
-      <FallingLeaves />
 
       <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
