@@ -67,6 +67,8 @@ const Index = () => {
   const [editingProjectName, setEditingProjectName] = useState('');
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [aiDescription, setAiDescription] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -167,16 +169,542 @@ const Index = () => {
     });
   };
 
-  const loadProjects = async () => {
+  const loadProjects = () => {
     if (!currentUser) return;
     
+    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+    const userProjects = localProjects.filter((p: Project) => p.user_id === currentUser.id);
+    setProjects(userProjects);
+  };
+
+  const saveProjectToLocalStorage = (project: Project) => {
+    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+    const existingIndex = localProjects.findIndex((p: Project) => p.id === project.id);
+    
+    if (existingIndex >= 0) {
+      localProjects[existingIndex] = project;
+    } else {
+      localProjects.push(project);
+    }
+    
+    localStorage.setItem('projects', JSON.stringify(localProjects));
+  };
+
+  const generateSiteFromDescription = async () => {
+    if (!aiDescription.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Опишите, какой сайт вы хотите создать",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
     try {
-      const response = await fetch(PROJECTS_API);
-      const data = await response.json();
-      const userProjects = data.filter((p: Project) => p.user_id === currentUser.id);
-      setProjects(userProjects);
+      const templates: { [key: string]: { html: string; css: string; js: string } } = {
+        landing: {
+          html: `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${aiDescription.slice(0, 50)}</title>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">Логотип</div>
+      <ul>
+        <li><a href="#home">Главная</a></li>
+        <li><a href="#about">О нас</a></li>
+        <li><a href="#services">Услуги</a></li>
+        <li><a href="#contact">Контакты</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section id="home" class="hero">
+    <div class="hero-content">
+      <h1>Добро пожаловать!</h1>
+      <p>${aiDescription}</p>
+      <button class="cta-button">Начать</button>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>О нас</h2>
+    <p>Мы предоставляем лучшие решения для вашего бизнеса</p>
+  </section>
+
+  <section id="services">
+    <h2>Наши услуги</h2>
+    <div class="services-grid">
+      <div class="service-card">
+        <h3>Услуга 1</h3>
+        <p>Описание услуги</p>
+      </div>
+      <div class="service-card">
+        <h3>Услуга 2</h3>
+        <p>Описание услуги</p>
+      </div>
+      <div class="service-card">
+        <h3>Услуга 3</h3>
+        <p>Описание услуги</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Свяжитесь с нами</h2>
+    <form id="contactForm">
+      <input type="text" placeholder="Ваше имя" required>
+      <input type="email" placeholder="Email" required>
+      <textarea placeholder="Сообщение" required></textarea>
+      <button type="submit">Отправить</button>
+    </form>
+  </section>
+
+  <footer>
+    <p>&copy; 2024 Все права защищены</p>
+  </footer>
+</body>
+</html>`,
+          css: `* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem 2rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  transition: opacity 0.3s;
+}
+
+nav a:hover {
+  opacity: 0.8;
+}
+
+.hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: fadeInUp 1s;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  animation: fadeInUp 1s 0.2s both;
+}
+
+.cta-button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.3s;
+  animation: fadeInUp 1s 0.4s both;
+}
+
+.cta-button:hover {
+  transform: scale(1.05);
+}
+
+section {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+section h2 {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #667eea;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.service-card {
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.service-card h3 {
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+form {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+form input,
+form textarea {
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+form input:focus,
+form textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+form textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+form button {
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+form button:hover {
+  opacity: 0.9;
+}
+
+footer {
+  background: #333;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  nav ul {
+    gap: 1rem;
+  }
+  
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  section h2 {
+    font-size: 2rem;
+  }
+}`,
+          js: `document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('contactForm');
+  
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Спасибо за ваше сообщение! Мы свяжемся с вами в ближайшее время.');
+      form.reset();
+    });
+  }
+
+  const links = document.querySelectorAll('nav a');
+  links.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section').forEach(section => {
+    section.style.opacity = '0';
+    section.style.transform = 'translateY(20px)';
+    section.style.transition = 'opacity 0.6s, transform 0.6s';
+    observer.observe(section);
+  });
+
+  console.log('Сайт загружен и готов к работе!');
+});`
+        },
+        portfolio: {
+          html: `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Портфолио</title>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>Мое Портфолио</h1>
+      <p class="subtitle">${aiDescription}</p>
+    </header>
+
+    <section class="about">
+      <h2>Обо мне</h2>
+      <p>Профессиональный специалист с опытом работы над различными проектами.</p>
+    </section>
+
+    <section class="projects">
+      <h2>Проекты</h2>
+      <div class="project-grid">
+        <div class="project-card">
+          <div class="project-image">🎨</div>
+          <h3>Проект 1</h3>
+          <p>Описание проекта</p>
+        </div>
+        <div class="project-card">
+          <div class="project-image">💻</div>
+          <h3>Проект 2</h3>
+          <p>Описание проекта</p>
+        </div>
+        <div class="project-card">
+          <div class="project-image">📱</div>
+          <h3>Проект 3</h3>
+          <p>Описание проекта</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="skills">
+      <h2>Навыки</h2>
+      <div class="skills-list">
+        <span class="skill">HTML/CSS</span>
+        <span class="skill">JavaScript</span>
+        <span class="skill">React</span>
+        <span class="skill">Design</span>
+      </div>
+    </section>
+
+    <footer>
+      <p>Свяжитесь со мной: email@example.com</p>
+    </footer>
+  </div>
+</body>
+</html>`,
+          css: `* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: #f5f5f5;
+  color: #333;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  color: white;
+  border-radius: 10px;
+  margin-bottom: 3rem;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+section {
+  background: white;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.project-card {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.3s;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+}
+
+.project-image {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.skill {
+  padding: 0.5rem 1rem;
+  background: #3498db;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  background: #2c3e50;
+  color: white;
+  border-radius: 10px;
+  margin-top: 2rem;
+}`,
+          js: `console.log('Портфолио загружено!');
+
+document.querySelectorAll('.project-card').forEach(card => {
+  card.addEventListener('click', function() {
+    alert('Подробнее о проекте: ' + this.querySelector('h3').textContent);
+  });
+});`
+        }
+      };
+
+      let selectedTemplate = templates.landing;
+      const desc = aiDescription.toLowerCase();
+      
+      if (desc.includes('портфолио') || desc.includes('резюме') || desc.includes('cv')) {
+        selectedTemplate = templates.portfolio;
+      }
+
+      setHtmlCode(selectedTemplate.html);
+      setCssCode(selectedTemplate.css);
+      setJsCode(selectedTemplate.js);
+      setProjectName(aiDescription.slice(0, 50));
+      setProjectDescription(aiDescription);
+
+      toast({
+        title: "Сайт создан!",
+        description: "Код сгенерирован на основе вашего описания",
+      });
+
+      setAiDescription('');
     } catch (error) {
-      console.error('Failed to load projects:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать сайт",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -233,7 +761,20 @@ const Index = () => {
       if (response.ok) {
         const url = `${VIEW_URL}?id=${uniqueId}`;
         setGeneratedUrl(url);
-        await loadProjects();
+        
+        const newProject: Project = {
+          id: uniqueId,
+          name: projectName,
+          description: projectDescription,
+          html_code: htmlCode,
+          css_code: cssCode,
+          js_code: jsCode,
+          user_id: currentUser?.id,
+          created_at: new Date().toISOString()
+        };
+        
+        saveProjectToLocalStorage(newProject);
+        loadProjects();
         
         toast({
           title: "Сайт опубликован! 🚀",
@@ -251,15 +792,16 @@ const Index = () => {
     }
   };
 
-  const loadProject = async (projectId: string) => {
-    try {
-      const response = await fetch(`${PROJECTS_API}?id=${projectId}`);
-      const project = await response.json();
+  const loadProject = (projectId: string) => {
+    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+    const project = localProjects.find((p: Project) => p.id === projectId);
+    
+    if (project) {
       setProjectName(project.name);
       setProjectDescription(project.description);
-      setHtmlCode(project.html_code);
-      setCssCode(project.css_code);
-      setJsCode(project.js_code);
+      setHtmlCode(project.html_code || '');
+      setCssCode(project.css_code || '');
+      setJsCode(project.js_code || '');
       setGeneratedUrl(`${VIEW_URL}?id=${projectId}`);
       setShowMobileMenu(false);
       
@@ -267,10 +809,10 @@ const Index = () => {
         title: "Проект загружен",
         description: project.name,
       });
-    } catch (error) {
+    } else {
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить проект",
+        description: "Проект не найден",
         variant: "destructive",
       });
     }
@@ -278,17 +820,20 @@ const Index = () => {
 
   const deleteProject = async (projectId: string) => {
     try {
+      const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+      const filteredProjects = localProjects.filter((p: Project) => p.id !== projectId);
+      localStorage.setItem('projects', JSON.stringify(filteredProjects));
+      
       const response = await fetch(PROJECTS_API, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: projectId })
       });
 
-      if (response.ok) {
-        await loadProjects();
-        toast({
-          title: "Проект удален",
-        });
+      loadProjects();
+      toast({
+        title: "Проект удален",
+      });
         setDeleteProjectId(null);
       }
     } catch (error) {
@@ -596,6 +1141,31 @@ const Index = () => {
 
       <div className="container mx-auto px-4 py-6 grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold">🤖 Создать сайт по описанию</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Опишите, какой сайт вы хотите создать</label>
+                <Textarea 
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder="Например: Лендинг для кафе с меню и контактами, или Портфолио фотографа..."
+                  className="min-h-[100px]"
+                />
+              </div>
+              <Button 
+                onClick={generateSiteFromDescription}
+                disabled={isGenerating}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                <Icon name="Sparkles" size={18} className="mr-2" />
+                {isGenerating ? 'Генерация...' : 'Создать сайт'}
+              </Button>
+            </div>
+          </Card>
+
           <Card>
             <div className="p-4 border-b">
               <h2 className="text-xl font-bold">Настройки проекта</h2>
