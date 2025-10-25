@@ -64,22 +64,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         import requests
         
-        prompt = f"""Создай полный рабочий HTML сайт по описанию: {description}
+        prompt = f"""Создай HTML сайт: {description}
 
-КРИТИЧЕСКИ ВАЖНО:
-1. Верни ТОЛЬКО валидный JSON в формате: {{"html": "...", "css": "...", "js": "..."}}
-2. Никакого текста до или после JSON - только чистый JSON!
-3. HTML должен быть полным документом с <!DOCTYPE html>
-4. Если это игра - сделай полноценную играбельную игру с логикой
-5. CSS должен быть красивым и адаптивным
-6. JS должен быть полностью рабочим с событиями и логикой
-
-Пример формата ответа:
-{{"html": "<!DOCTYPE html><html>...</html>", "css": "body {{...}}", "js": "// game logic"}}"""
+Верни ТОЛЬКО JSON: {{"html": "...", "css": "...", "js": "..."}}
+HTML с <!DOCTYPE html>, полная страница.
+Если игра - добавь всю логику в JS.
+Минимум текста, максимум кода."""
 
         # Detect if using Groq or OpenAI
         api_url = 'https://api.groq.com/openai/v1/chat/completions' if 'gsk_' in api_key else 'https://api.openai.com/v1/chat/completions'
-        model = 'llama-3.3-70b-versatile' if 'gsk_' in api_key else 'gpt-4o-mini'
+        model = 'llama-3.1-8b-instant' if 'gsk_' in api_key else 'gpt-4o-mini'
 
         response = requests.post(
             api_url,
@@ -92,27 +86,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'messages': [
                     {
                         'role': 'system',
-                        'content': 'Ты эксперт веб-разработчик. ВСЕГДА возвращай ТОЛЬКО валидный JSON с ключами html, css, js. БЕЗ markdown, БЕЗ ```json блоков, БЕЗ дополнительного текста - только чистый JSON объект!'
+                        'content': 'Веб-разработчик. Возвращай ТОЛЬКО JSON: {"html":"...","css":"...","js":"..."}. Без текста!'
                     },
                     {
                         'role': 'user',
                         'content': prompt
                     }
                 ],
-                'temperature': 0.8,
-                'max_tokens': 8000
+                'temperature': 0.7,
+                'max_tokens': 4000
             },
-            timeout=60
+            timeout=25
         )
         
         if response.status_code != 200:
+            error_detail = response.text
+            if response.status_code == 403:
+                error_detail = 'API ключ недействителен или заблокирован. Создайте новый ключ на console.groq.com'
+            elif response.status_code == 401:
+                error_detail = 'API ключ неверный. Проверьте, что вы скопировали его полностью'
+            
             return {
                 'statusCode': response.status_code,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': f'API error: {response.text}'}),
+                'body': json.dumps({'error': error_detail}),
                 'isBase64Encoded': False
             }
         
