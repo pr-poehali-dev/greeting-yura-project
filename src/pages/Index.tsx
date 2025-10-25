@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const PROJECTS_API = 'https://functions.poehali.dev/fbacc2fb-c355-412d-9250-11bc9088ce40';
 const VIEW_URL = 'https://functions.poehali.dev/da111202-0c0a-40bc-a2af-421384b780eb';
+const AI_GENERATE_API = 'https://functions.poehali.dev/37e6b8f9-0e89-4353-9b4e-e7adcd3b450a';
 
 interface Project {
   id: string;
@@ -191,6 +192,59 @@ const Index = () => {
   };
 
   const generateSiteFromDescription = async () => {
+    if (!aiDescription.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Опишите, какой сайт вы хотите создать",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch(AI_GENERATE_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: aiDescription
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка генерации');
+      }
+
+      const data = await response.json();
+      
+      setHtmlCode(data.html);
+      setCssCode(data.css);
+      setJsCode(data.js);
+      setProjectName(aiDescription.slice(0, 50));
+      setProjectDescription(aiDescription);
+
+      toast({
+        title: "Сайт создан! 🎉",
+        description: "AI сгенерировал уникальный код специально для вас",
+      });
+
+      setAiDescription('');
+    } catch (error: any) {
+      toast({
+        title: "Ошибка генерации",
+        description: error.message || "Не удалось создать сайт. Проверьте API ключ в настройках.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateSiteFromDescriptionOld = async () => {
     if (!aiDescription.trim()) {
       toast({
         title: "Ошибка",

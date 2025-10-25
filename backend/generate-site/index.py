@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Business: Generate website code (HTML, CSS, JS) based on user description using OpenAI
+    Business: Generate website code (HTML, CSS, JS) based on user description using Groq AI
     Args: event with httpMethod, body containing description
           context with request_id attribute
     Returns: HTTP response with generated code
@@ -49,7 +49,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = os.environ.get('GROQ_API_KEY') or os.environ.get('OPENAI_API_KEY')
     if not api_key:
         return {
             'statusCode': 500,
@@ -57,49 +57,52 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'error': 'OpenAI API key not configured'}),
+            'body': json.dumps({'error': 'API key not configured'}),
             'isBase64Encoded': False
         }
     
     try:
         import requests
         
-        prompt = f"""Создай полный HTML сайт по описанию: {description}
+        prompt = f"""Создай полный рабочий HTML сайт по описанию: {description}
 
-Требования:
-1. Верни ТОЛЬКО JSON в формате: {{"html": "...", "css": "...", "js": "..."}}
-2. HTML должен быть полным (с <!DOCTYPE>, <html>, <head>, <body>)
-3. CSS должен быть современным, красивым и адаптивным
-4. JavaScript должен добавлять интерактивность
-5. Используй только чистый JS (без библиотек)
-6. Если описание про игру - создай полноценную рабочую игру
-7. Код должен быть готов к использованию
+КРИТИЧЕСКИ ВАЖНО:
+1. Верни ТОЛЬКО валидный JSON в формате: {{"html": "...", "css": "...", "js": "..."}}
+2. Никакого текста до или после JSON - только чистый JSON!
+3. HTML должен быть полным документом с <!DOCTYPE html>
+4. Если это игра - сделай полноценную играбельную игру с логикой
+5. CSS должен быть красивым и адаптивным
+6. JS должен быть полностью рабочим с событиями и логикой
 
-Пример JSON ответа:
-{{"html": "<!DOCTYPE html>...", "css": "body {{...}}", "js": "console.log('ready');"}}"""
+Пример формата ответа:
+{{"html": "<!DOCTYPE html><html>...</html>", "css": "body {{...}}", "js": "// game logic"}}"""
+
+        # Detect if using Groq or OpenAI
+        api_url = 'https://api.groq.com/openai/v1/chat/completions' if 'gsk_' in api_key else 'https://api.openai.com/v1/chat/completions'
+        model = 'llama-3.3-70b-versatile' if 'gsk_' in api_key else 'gpt-4o-mini'
 
         response = requests.post(
-            'https://api.openai.com/v1/chat/completions',
+            api_url,
             headers={
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-4o-mini',
+                'model': model,
                 'messages': [
                     {
                         'role': 'system',
-                        'content': 'Ты эксперт по созданию веб-сайтов. Всегда возвращай только валидный JSON с ключами html, css, js. Никакого дополнительного текста.'
+                        'content': 'Ты эксперт веб-разработчик. ВСЕГДА возвращай ТОЛЬКО валидный JSON с ключами html, css, js. БЕЗ markdown, БЕЗ ```json блоков, БЕЗ дополнительного текста - только чистый JSON объект!'
                     },
                     {
                         'role': 'user',
                         'content': prompt
                     }
                 ],
-                'temperature': 0.7,
-                'max_tokens': 4000
+                'temperature': 0.8,
+                'max_tokens': 8000
             },
-            timeout=30
+            timeout=60
         )
         
         if response.status_code != 200:
@@ -109,20 +112,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': f'OpenAI API error: {response.text}'}),
+                'body': json.dumps({'error': f'API error: {response.text}'}),
                 'isBase64Encoded': False
             }
         
         ai_response = response.json()
-        generated_text = ai_response['choices'][0]['message']['content']
+        generated_text = ai_response['choices'][0]['message']['content'].strip()
         
-        # Extract JSON from response (handle markdown code blocks)
+        # Try to extract JSON from markdown blocks
         if '```json' in generated_text:
             generated_text = generated_text.split('```json')[1].split('```')[0].strip()
         elif '```' in generated_text:
             generated_text = generated_text.split('```')[1].split('```')[0].strip()
         
+        # Remove any leading/trailing text
+        start_idx = generated_text.find('{')
+        end_idx = generated_text.rfind('}')
+        if start_idx != -1 and end_idx != -1:
+            generated_text = generated_text[start_idx:end_idx+1]
+        
         generated_code = json.loads(generated_text)
+        
+        # Ensure all fields exist
+        html_code = generated_code.get('html', '')
+        css_code = generated_code.get('css', '')
+        js_code = generated_code.get('js', '')
+        
+        if not html_code:
+            raise ValueError('Generated HTML is empty')
         
         return {
             'statusCode': 200,
@@ -131,14 +148,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'html': generated_code.get('html', ''),
-                'css': generated_code.get('css', ''),
-                'js': generated_code.get('js', ''),
+                'html': html_code,
+                'css': css_code,
+                'js': js_code,
                 'description': description
             }),
             'isBase64Encoded': False
         }
         
+    except json.JSONDecodeError as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': f'Failed to parse AI response: {str(e)}', 'raw': generated_text[:500]}),
+            'isBase64Encoded': False
+        }
     except Exception as e:
         return {
             'statusCode': 500,

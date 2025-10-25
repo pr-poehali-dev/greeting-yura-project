@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS request for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedHeaders": {
+        "Access-Control-Allow-Origin": "*"
+      }
+    },
+    {
+      "name": "Test POST with description",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "description": "Простой лендинг для кафе"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "html": "string",
+        "css": "string",
+        "js": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
